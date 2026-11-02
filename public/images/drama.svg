@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
-<rect width="600" height="300" fill="#fae8ff"/>
-<circle cx="300" cy="120" r="58" fill="#c026d3"/>
-<text x="300" y="225" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#c026d3">Drama</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"><rect width="600" height="300" fill="#faf5ff"/><path d="M145 75c45-25 95-25 140 0v95c0 55-70 95-70 95s-70-40-70-95z" fill="#fff" stroke="#7e22ce" stroke-width="8"/><path d="M315 75c45-25 95-25 140 0v95c0 55-70 95-70 95s-70-40-70-95z" fill="#fff" stroke="#c026d3" stroke-width="8"/><circle cx="190" cy="130" r="10" fill="#7e22ce"/><circle cx="240" cy="130" r="10" fill="#7e22ce"/><path d="M180 180q35 35 70 0" fill="none" stroke="#7e22ce" stroke-width="8"/><circle cx="360" cy="130" r="10" fill="#c026d3"/><circle cx="410" cy="130" r="10" fill="#c026d3"/><path d="M350 200q35-35 70 0" fill="none" stroke="#c026d3" stroke-width="8"/><text x="300" y="285" text-anchor="middle" font-family="Arial" font-size="28" fill="#701a75">DRAMA</text></svg>
