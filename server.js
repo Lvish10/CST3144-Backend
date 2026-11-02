@@ -87,6 +87,27 @@ app.get('/search', async (req, res) => {
     if (!q) return res.json(await db.collection('lesson').find({}).toArray());
 
     const safeQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\
+// Challenge: teachers and their lessons.
+app.get('/teachers', async (req, res) => {
+  try {
+    res.json(await db.collection('teacher').find({}).toArray());
+  } catch {
+    res.status(500).json({ error: 'Could not retrieve teachers' });
+  }
+});
+
+app.get('/teachers/:id/lessons', async (req, res) => {
+  try {
+    const teacher = await db.collection('teacher').findOne({ _id: new ObjectId(req.params.id) });
+    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
+
+    const ids = teacher.lessonIDs.map(id => new ObjectId(id));
+    res.json(await db.collection('lesson').find({ _id: { $in: ids } }).toArray());
+  } catch {
+    res.status(400).json({ error: 'Invalid teacher ID' });
+  }
+});
+
 async function start() {');
 
     const results = await db.collection('lesson').find({
