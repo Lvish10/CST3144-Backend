@@ -80,6 +80,30 @@ app.put('/lessons/:id', async (req, res) => {
   }
 });
 
+// Challenge: server-side search across topic, location, price and availability.
+app.get('/search', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (!q) return res.json(await db.collection('lesson').find({}).toArray());
+
+    const safeQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\
+async function start() {');
+
+    const results = await db.collection('lesson').find({
+      $or: [
+        { topic: { $regex: safeQuery, $options: 'i' } },
+        { location: { $regex: safeQuery, $options: 'i' } },
+        { $expr: { $regexMatch: { input: { $toString: '$price' }, regex: safeQuery, options: 'i' } } },
+        { $expr: { $regexMatch: { input: { $toString: '$space' }, regex: safeQuery, options: 'i' } } }
+      ]
+    }).toArray();
+
+    res.json(results);
+  } catch {
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
 async function start() {
   await client.connect();
   db = client.db(process.env.DB_NAME || 'after_school');
