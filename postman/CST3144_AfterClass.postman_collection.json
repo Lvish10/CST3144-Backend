@@ -1,0 +1,237 @@
+{
+  "info": {
+    "name": "CST3144 AfterClass API",
+    "description": "Postman requests for the CST3144 AfterClass backend. Covers core REST routes, challenge routes, static images and the optional de-enrol flow.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "lessonId",
+      "value": "66f000000000000000000001"
+    },
+    {
+      "key": "teacherId",
+      "value": "77f000000000000000000001"
+    },
+    {
+      "key": "orderId",
+      "value": "REPLACE_AFTER_POST"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - GET All Lessons",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/lessons",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "lessons"
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 - Search Lessons",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/search?q=math",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "search"
+          ],
+          "query": [
+            {
+              "key": "q",
+              "value": "math"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 - GET Teachers",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/teachers",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teachers"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - GET Teacher Lessons",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/teachers/{{teacherId}}/lessons",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teachers",
+            "{{teacherId}}",
+            "lessons"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 - GET Enrolment",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/enrolment/{{lessonId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "enrolment",
+            "{{lessonId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - POST New Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Postman Student\",\n  \"phone\": \"59001234\",\n  \"lessonIDs\": [\n    \"{{lessonId}}\"\n  ],\n  \"numberOfSpaces\": 1,\n  \"items\": [\n    {\n      \"lessonId\": \"{{lessonId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/orders",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - PUT Lesson Space",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"space\": 4\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lessons/{{lessonId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "lessons",
+            "{{lessonId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 - PUT Lesson Price",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"price\": 105\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/lessons/{{lessonId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "lessons",
+            "{{lessonId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "09 - GET Valid Image",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/images/math.svg",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "images",
+            "math.svg"
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 - GET Missing Image",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/images/missing.svg",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "images",
+            "missing.svg"
+          ]
+        }
+      }
+    },
+    {
+      "name": "11 - DELETE One Enrolment",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/enrolments/{{orderId}}/{{lessonId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "enrolments",
+            "{{orderId}}",
+            "{{lessonId}}"
+          ]
+        }
+      }
+    }
+  ]
+}
