@@ -6,6 +6,7 @@
       "request": "launch",
       "name": "Run AfterClass Backend",
       "program": "${workspaceFolder}/server.js",
+      "cwd": "${workspaceFolder}",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",
       "skipFiles": [

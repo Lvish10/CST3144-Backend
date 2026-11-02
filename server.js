@@ -15,10 +15,18 @@ const liveLogBuffer = [];
 const liveLogClients = new Set();
 const MAX_LIVE_LOGS = 250;
 
+function safeLogText(value) {
+  return String(value)
+    .replace(/mongodb(?:\+srv)?:\/\/[^\s"'<>]+/gi, '[MongoDB URI hidden]')
+    .replace(/([?&]phone=)[^&\s]+/gi, '$1[hidden]')
+    .replace(/((?:password|token|authorization)\s*[:=]\s*)[^\s,}]+/gi, '$1[hidden]')
+    .replace(/\b\d{7,15}\b/g, value => maskPhone(value));
+}
+
 function publishLiveLog(message) {
   const entry = {
     time: new Date().toISOString(),
-    message: String(message)
+    message: safeLogText(message)
   };
 
   liveLogBuffer.push(entry);
@@ -35,8 +43,9 @@ function publishLiveLog(message) {
 }
 
 function consoleAndLive(message) {
-  console.log(message);
-  publishLiveLog(message);
+  const safeMessage = safeLogText(message);
+  console.log(safeMessage);
+  publishLiveLog(safeMessage);
 }
 
 
@@ -59,7 +68,7 @@ function logStep(req, label, message, details = null) {
 }
 
 function maskName(name = '') {
-  return name
+  return String(name || '')
     .split(' ')
     .map(part => part ? part[0] + '*'.repeat(Math.max(1, part.length - 1)) : '')
     .join(' ');
@@ -69,21 +78,6 @@ function maskPhone(phone = '') {
   const text = String(phone);
   return text.length <= 2 ? '**' : '*'.repeat(text.length - 2) + text.slice(-2);
 }
-
-app.use(express.json());
-
-// CORS lets the GitHub Pages frontend call the Render backend.
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGIN || '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
 
 // Detailed logger middleware for every request.
 app.use((req, res, next) => {
@@ -99,11 +93,28 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = Date.now() - req.startedAt;
     logStep(req, 'RESPONSE', `HTTP status: ${res.statusCode}`);
-    logStep(req, 'SUCCESS', `Request completed in ${duration} ms`);
+    const label = res.statusCode >= 500 ? 'ERROR' : (res.statusCode >= 400 ? 'WARNING' : 'SUCCESS');
+    logStep(req, label, `Request completed in ${duration} ms`);
     consoleAndLive('------------------------------------------------------------');
   });
 
   next();
+});
+
+// Logging comes first so OPTIONS and malformed JSON requests are recorded too.
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGIN || '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+app.use(express.json());
+app.use((error, req, res, next) => {
+  if (error.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON body' });
+  }
+  next(error);
 });
 
 // Explain static image requests before Express serves the file.
@@ -131,7 +142,10 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     service: 'AfterClass API',
-    database: db ? db.databaseName : 'connecting'
+    database: db ? db.databaseName : 'connecting',
+    commit: process.env.RENDER_GIT_COMMIT || null,
+    branch: process.env.RENDER_GIT_BRANCH || null,
+    repository: process.env.RENDER_GIT_REPO_SLUG || null
   });
 });
 
@@ -237,6 +251,7 @@ app.get('/', (req, res) => {
     row.appendChild(time);
     row.appendChild(document.createTextNode(entry.message));
     logs.appendChild(row);
+    if (logs.children.length > 250) logs.firstChild.remove();
     logs.scrollTop = logs.scrollHeight;
   }
 
@@ -269,10 +284,12 @@ app.post('/client-events', (req, res) => {
   // Keep only simple non-sensitive details.
   const safeDetails = {};
 
+  const allowedDetails = ['lessonId', 'teacherId', 'availableBefore', 'cartCount',
+    'sortBy', 'sortOrder', 'searchLength', 'lessonCount', 'enrolment',
+    'purchasedSpaces', 'lessonTypes', 'enrolmentEntries', 'totalSpaces',
+    'quantityBefore', 'validationPassed', 'host', 'source'];
   for (const [key, value] of Object.entries(details || {})) {
-    if (['phone', 'name', 'password', 'token', 'mongodb_uri'].includes(String(key).toLowerCase())) {
-      continue;
-    }
+    if (!allowedDetails.includes(key)) continue;
 
     if (
       typeof value === 'string' ||
@@ -328,10 +345,28 @@ app.post('/orders', async (req, res) => {
       totalSpaces: numberOfSpaces
     });
 
-    if (!name || !phone || !Array.isArray(lessonIDs) || !numberOfSpaces) {
+    const validIds = Array.isArray(lessonIDs) && lessonIDs.length > 0 &&
+      lessonIDs.every(id => typeof id === 'string' && ObjectId.isValid(id)) &&
+      new Set(lessonIDs).size === lessonIDs.length;
+    const validItems = Array.isArray(items) && validIds && items.length === lessonIDs.length &&
+      items.every(item => item && lessonIDs.includes(item.lessonId) &&
+        Number.isInteger(item.quantity) && item.quantity > 0) &&
+      new Set(items.map(item => item.lessonId)).size === items.length;
+    if (typeof name !== 'string' || !/^[A-Za-z ]+$/.test(name) || !name.trim() ||
+        typeof phone !== 'string' || !/^\d+$/.test(phone) ||
+        !validIds || !validItems || !Number.isInteger(numberOfSpaces) ||
+        numberOfSpaces <= 0 || items.reduce((sum, item) => sum + item.quantity, 0) !== numberOfSpaces) {
       logStep(req, 'WARNING', 'Order validation failed.');
       return res.status(400).json({ error: 'Invalid order' });
     }
+
+    const selectedLessons = await db.collection('lesson').find({
+      _id: { $in: lessonIDs.map(id => new ObjectId(id)) }
+    }).toArray();
+    if (selectedLessons.length !== lessonIDs.length || items.some(item => {
+      const lesson = selectedLessons.find(row => row._id.toString() === item.lessonId);
+      return !lesson || lesson.space < item.quantity;
+    })) return res.status(409).json({ error: 'Selected lessons are unavailable' });
 
     logStep(req, 'DATABASE', 'Database: after_school');
     logStep(req, 'DATABASE', 'Collection: order');
@@ -383,6 +418,14 @@ app.put('/lessons/:id', async (req, res) => {
       logStep(req, 'WARNING', 'No valid lesson attributes were supplied.');
       return res.status(400).json({ error: 'No valid lesson attributes supplied' });
     }
+    if ((update.space !== undefined && (!Number.isInteger(update.space) || update.space < 0)) ||
+        (update.price !== undefined && (typeof update.price !== 'number' || !Number.isFinite(update.price) || update.price < 0)) ||
+        ['topic', 'location'].some(key => update[key] !== undefined &&
+          (typeof update[key] !== 'string' || !update[key].trim())) ||
+        (update.image !== undefined && (typeof update.image !== 'string' ||
+          !/^[A-Za-z0-9_-]+\.(svg|png|jpe?g|webp|gif)$/i.test(update.image)))) {
+      return res.status(400).json({ error: 'Invalid lesson attribute value' });
+    }
 
     logStep(req, 'DATABASE', 'Database: after_school');
     logStep(req, 'DATABASE', 'Collection: lesson');
@@ -418,7 +461,7 @@ app.get('/search', async (req, res) => {
 
     logStep(req, 'ROUTE', 'GET /search');
     logStep(req, 'CODE', "server.js -> app.get('/search', ...)");
-    logStep(req, 'INFO', `Search value: "${q}"`);
+    logStep(req, 'INFO', `Search text length: ${q.length}`);
     logStep(req, 'INFO', 'Search happens in Express/MongoDB, not by filtering Vue data.');
 
     if (!q) {
@@ -636,6 +679,9 @@ app.delete('/enrolments/:orderId/:lessonId', async (req, res) => {
       return res.status(400).json({ error: 'No purchased space to remove' });
     }
 
+    const lesson = await db.collection('lesson').findOne({ _id: new ObjectId(lessonId) });
+    if (!lesson) return res.status(404).json({ error: 'Lesson not found' });
+
     const newItems = items.map(item => ({ ...item }));
 
     if (currentQuantity === 1) {
@@ -655,8 +701,8 @@ app.delete('/enrolments/:orderId/:lessonId', async (req, res) => {
 
     logStep(req, 'DATABASE', 'Updating order collection after de-enrolment.');
 
-    await db.collection('order').updateOne(
-      { _id: new ObjectId(orderId) },
+    const orderUpdate = await db.collection('order').updateOne(
+      { _id: new ObjectId(orderId), items: { $elemMatch: { lessonId, quantity: currentQuantity } } },
       {
         $set: {
           items: newItems,
@@ -665,23 +711,18 @@ app.delete('/enrolments/:orderId/:lessonId', async (req, res) => {
         }
       }
     );
-
-    const lesson = await db.collection('lesson').findOne({
-      _id: new ObjectId(lessonId)
-    });
-
-    if (!lesson) {
-      return res.status(404).json({ error: 'Lesson not found' });
+    if (!orderUpdate.modifiedCount) {
+      return res.status(409).json({ error: 'Enrolment changed. Reload before trying again.' });
     }
 
-    const restoredSpace = Math.min(5, Number(lesson.space || 0) + 1);
+    const restoredSpace = Number(lesson.space || 0) + 1;
 
     logStep(req, 'DATABASE', 'Restoring one available lesson space.');
     logStep(req, 'DATABASE', `Lesson space: ${lesson.space} -> ${restoredSpace}`);
 
     const updatedLesson = await db.collection('lesson').findOneAndUpdate(
       { _id: new ObjectId(lessonId) },
-      { $set: { space: restoredSpace } },
+      { $inc: { space: 1 } },
       { returnDocument: 'after' }
     );
 
@@ -720,7 +761,7 @@ app.get('/enrolment/:lessonid', async (req, res) => {
     let enrolment = 0;
 
     for (const order of orders) {
-      if (Array.isArray(order.items)) {
+      if (Array.isArray(order.items) && order.items.length) {
         const item = order.items.find(x => x.lessonId === lessonId);
 
         if (item) {
@@ -728,8 +769,9 @@ app.get('/enrolment/:lessonid', async (req, res) => {
           logStep(req, 'DATABASE', `Added quantity ${item.quantity}; running total = ${enrolment}`);
         }
       } else {
-        enrolment += 1;
-        logStep(req, 'DATABASE', `Legacy order counted as 1; running total = ${enrolment}`);
+        const quantity = order.lessonIDs.length === 1 ? Number(order.numberOfSpaces) || 0 : 1;
+        enrolment += quantity;
+        logStep(req, 'DATABASE', `Legacy order counted as ${quantity}; running total = ${enrolment}`);
       }
     }
 

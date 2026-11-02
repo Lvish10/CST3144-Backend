@@ -119,7 +119,7 @@ You can also run **POST Client Event** to demonstrate frontend/client event logg
 
 POST, PUT and DELETE requests modify the real MongoDB Atlas database.
 
-The database was last reset to:
+The seed script defines this initial state:
 
 - 10 lessons
 - 5 spaces each
@@ -127,6 +127,15 @@ The database was last reset to:
 - 0 orders
 
 Do not run `npm run seed` unless you intentionally want to erase orders and reset spaces.
+
+These are initial values, not a claim about the current live database. Purchases change the space and order counts.
+The demonstration PUT sets space to 4 and price to 105. Record the original values first;
+after the demonstration, de-enrol only your own test purchase and restore the original price with PUT.
+Do not remove someone else's enrolment or use seeding for cleanup.
+
+The local audit runner in the shared workspace (`supporting-files/tools/verify-api.cjs`)
+uses a unique synthetic phone, executes these request assertions, restores its test changes,
+and retains the resulting zero-quantity order document. This is distinct from importing the collection into the Postman desktop app.
 
 ## Submission export
 
