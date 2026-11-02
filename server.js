@@ -41,9 +41,11 @@ app.get('/lessons', async (req, res) => {
 app.post('/orders', async (req, res) => {
   try {
     const { name, phone, lessonIDs, numberOfSpaces, items = [] } = req.body;
+
     if (!name || !phone || !Array.isArray(lessonIDs) || !numberOfSpaces) {
       return res.status(400).json({ error: 'Invalid order' });
     }
+
     const result = await db.collection('order').insertOne({
       name,
       phone,
@@ -52,7 +54,11 @@ app.post('/orders', async (req, res) => {
       items,
       createdAt: new Date()
     });
-    res.status(201).json({ message: 'Order saved', orderId: result.insertedId });
+
+    res.status(201).json({
+      message: 'Order saved',
+      orderId: result.insertedId
+    });
   } catch {
     res.status(500).json({ error: 'Could not save order' });
   }
@@ -62,75 +68,42 @@ app.put('/lessons/:id', async (req, res) => {
   try {
     const allowed = ['topic', 'location', 'price', 'space', 'image'];
     const update = {};
+
     for (const key of allowed) {
-      if (req.body[key] !== undefined) update[key] = req.body[key];
+      if (req.body[key] !== undefined) {
+        update[key] = req.body[key];
+      }
     }
+
     if (!Object.keys(update).length) {
       return res.status(400).json({ error: 'No valid lesson attributes supplied' });
     }
+
     const result = await db.collection('lesson').findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },
       { $set: update },
       { returnDocument: 'after' }
     );
-    if (!result) return res.status(404).json({ error: 'Lesson not found' });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+
     res.json(result);
   } catch {
     res.status(400).json({ error: 'Invalid lesson ID or update' });
   }
 });
 
-// Challenge: server-side search across topic, location, price and availability.
 app.get('/search', async (req, res) => {
   try {
     const q = String(req.query.q || '').trim();
-    if (!q) return res.json(await db.collection('lesson').find({}).toArray());
 
-    const safeQuery = q.replace(/[.*+?^${}()|[\]\\]/g, '\\
-// Challenge: teachers and their lessons.
-app.get('/teachers', async (req, res) => {
-  try {
-    res.json(await db.collection('teacher').find({}).toArray());
-  } catch {
-    res.status(500).json({ error: 'Could not retrieve teachers' });
-  }
-});
-
-app.get('/teachers/:id/lessons', async (req, res) => {
-  try {
-    const teacher = await db.collection('teacher').findOne({ _id: new ObjectId(req.params.id) });
-    if (!teacher) return res.status(404).json({ error: 'Teacher not found' });
-
-    const ids = teacher.lessonIDs.map(id => new ObjectId(id));
-    res.json(await db.collection('lesson').find({ _id: { $in: ids } }).toArray());
-  } catch {
-    res.status(400).json({ error: 'Invalid teacher ID' });
-  }
-});
-
-// Challenge: purchased slots for one lesson.
-app.get('/enrolment/:lessonid', async (req, res) => {
-  try {
-    const lessonId = req.params.lessonid;
-    const orders = await db.collection('order').find({ lessonIDs: lessonId }).toArray();
-
-    let enrolment = 0;
-    for (const order of orders) {
-      if (Array.isArray(order.items)) {
-        const item = order.items.find(x => x.lessonId === lessonId);
-        if (item) enrolment += Number(item.quantity) || 0;
-      } else {
-        enrolment += 1;
-      }
+    if (!q) {
+      return res.json(await db.collection('lesson').find({}).toArray());
     }
 
-    res.json({ lessonId, enrolment });
-  } catch {
-    res.status(500).json({ error: 'Could not calculate enrolment' });
-  }
-});
-
-async function start() {');
+    const safeQuery = q.replace(/[.*+?^$()|[\]\\{}]/g, '\\$&');
 
     const results = await db.collection('lesson').find({
       $or: [
@@ -147,11 +120,71 @@ async function start() {');
   }
 });
 
+app.get('/teachers', async (req, res) => {
+  try {
+    res.json(await db.collection('teacher').find({}).toArray());
+  } catch {
+    res.status(500).json({ error: 'Could not retrieve teachers' });
+  }
+});
+
+app.get('/teachers/:id/lessons', async (req, res) => {
+  try {
+    const teacher = await db.collection('teacher').findOne({
+      _id: new ObjectId(req.params.id)
+    });
+
+    if (!teacher) {
+      return res.status(404).json({ error: 'Teacher not found' });
+    }
+
+    const ids = teacher.lessonIDs.map(id => new ObjectId(id));
+
+    res.json(
+      await db.collection('lesson').find({
+        _id: { $in: ids }
+      }).toArray()
+    );
+  } catch {
+    res.status(400).json({ error: 'Invalid teacher ID' });
+  }
+});
+
+app.get('/enrolment/:lessonid', async (req, res) => {
+  try {
+    const lessonId = req.params.lessonid;
+    const orders = await db.collection('order').find({
+      lessonIDs: lessonId
+    }).toArray();
+
+    let enrolment = 0;
+
+    for (const order of orders) {
+      if (Array.isArray(order.items)) {
+        const item = order.items.find(x => x.lessonId === lessonId);
+
+        if (item) {
+          enrolment += Number(item.quantity) || 0;
+        }
+      } else {
+        enrolment += 1;
+      }
+    }
+
+    res.json({ lessonId, enrolment });
+  } catch {
+    res.status(500).json({ error: 'Could not calculate enrolment' });
+  }
+});
+
 async function start() {
   await client.connect();
   db = client.db(process.env.DB_NAME || 'after_school');
   console.log(`Connected to MongoDB: ${db.databaseName}`);
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 }
 
 start().catch(err => {
