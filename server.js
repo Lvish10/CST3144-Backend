@@ -38,6 +38,26 @@ app.get('/lessons', async (req, res) => {
   }
 });
 
+app.post('/orders', async (req, res) => {
+  try {
+    const { name, phone, lessonIDs, numberOfSpaces, items = [] } = req.body;
+    if (!name || !phone || !Array.isArray(lessonIDs) || !numberOfSpaces) {
+      return res.status(400).json({ error: 'Invalid order' });
+    }
+    const result = await db.collection('order').insertOne({
+      name,
+      phone,
+      lessonIDs,
+      numberOfSpaces,
+      items,
+      createdAt: new Date()
+    });
+    res.status(201).json({ message: 'Order saved', orderId: result.insertedId });
+  } catch {
+    res.status(500).json({ error: 'Could not save order' });
+  }
+});
+
 async function start() {
   await client.connect();
   db = client.db(process.env.DB_NAME || 'after_school');
