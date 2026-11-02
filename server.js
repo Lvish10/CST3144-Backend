@@ -176,7 +176,7 @@ app.get('/', (req, res) => {
     .route{padding:7px 0;border-bottom:1px solid #203046;font-family:Consolas,monospace;font-size:.86rem}
     .method{display:inline-block;width:58px;color:#7dd3fc;font-weight:700}
     #logs{height:68vh;overflow:auto;background:#050a12;border-radius:9px;padding:14px;font-family:Consolas,monospace;font-size:.86rem;line-height:1.55;white-space:pre-wrap}
-    .line{padding:2px 0}.time{color:#64748b;margin-right:8px}.db{color:#86efac}.err{color:#fca5a5}.req{color:#93c5fd}.success{color:#67e8f9}
+    .line{padding:2px 0}.time{color:#64748b;margin-right:8px}.db{color:#86efac}.err{color:#fca5a5}.req{color:#93c5fd}.success{color:#67e8f9}.client{color:#fbbf24}
     .toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
     .status{display:flex;gap:7px;align-items:center;color:#a7f3d0}.dot{width:9px;height:9px;background:#22c55e;border-radius:50%}
     button{border:0;border-radius:7px;padding:7px 10px;background:#24364d;color:#fff;cursor:pointer}
@@ -225,6 +225,7 @@ app.get('/', (req, res) => {
     row.className = 'line';
 
     if (entry.message.includes('[DATABASE]')) row.classList.add('db');
+    if (entry.message.includes('[CLIENT]')) row.classList.add('client');
     if (entry.message.includes('[ERROR]')) row.classList.add('err');
     if (entry.message.includes('[REQUEST]') || entry.message.includes('[ROUTE]')) row.classList.add('req');
     if (entry.message.includes('[SUCCESS]') || entry.message.includes('[RESPONSE]')) row.classList.add('success');
@@ -771,7 +772,7 @@ async function start() {
     consoleAndLive('          GET  /my-enrolments?phone=');
     consoleAndLive('          DELETE /enrolments/:orderId/:lessonId');
     consoleAndLive('          GET  /images/:filename');
-    console.log('============================================================\n');
+    consoleAndLive('============================================================');
   });
 }
 
