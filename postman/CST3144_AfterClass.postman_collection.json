@@ -108,7 +108,28 @@
       }
     },
     {
-      "name": "06 - POST New Order",
+      "name": "06 - GET My Enrolments",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/my-enrolments?phone=59001234",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "my-enrolments"
+          ],
+          "query": [
+            {
+              "key": "phone",
+              "value": "59001234"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - POST New Order",
       "request": {
         "method": "POST",
         "header": [
@@ -133,7 +154,7 @@
       }
     },
     {
-      "name": "07 - PUT Lesson Space",
+      "name": "08 - PUT Lesson Space",
       "request": {
         "method": "PUT",
         "header": [
@@ -159,7 +180,7 @@
       }
     },
     {
-      "name": "08 - PUT Lesson Price",
+      "name": "09 - PUT Lesson Price",
       "request": {
         "method": "PUT",
         "header": [
@@ -185,7 +206,7 @@
       }
     },
     {
-      "name": "09 - GET Valid Image",
+      "name": "10 - GET Valid Image",
       "request": {
         "method": "GET",
         "url": {
@@ -201,7 +222,7 @@
       }
     },
     {
-      "name": "10 - GET Missing Image",
+      "name": "11 - GET Missing Image",
       "request": {
         "method": "GET",
         "url": {
@@ -217,7 +238,7 @@
       }
     },
     {
-      "name": "11 - DELETE One Enrolment",
+      "name": "12 - DELETE One Enrolment",
       "request": {
         "method": "DELETE",
         "url": {
