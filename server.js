@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const { MongoClient } = require('mongodb');
 
 const app = express();
@@ -8,6 +9,22 @@ const client = new MongoClient(process.env.MONGODB_URI);
 let db;
 
 app.use(express.json());
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGIN || '*');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} | ${req.method} | ${req.originalUrl}`);
+  next();
+});
+
+app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
+app.use('/images', (req, res) => res.status(404).json({ error: 'Image not found' }));
 
 app.get('/', (req, res) => {
   res.json({ message: 'After-school API is running' });
