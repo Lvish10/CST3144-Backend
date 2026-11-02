@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
-<rect width="600" height="300" fill="#fef3c7"/>
-<circle cx="300" cy="120" r="58" fill="#d97706"/>
-<text x="300" y="225" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#d97706">English</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"><rect width="600" height="300" fill="#fff7ed"/><path d="M95 65c80-35 145-15 205 20v150c-60-35-125-55-205-20z" fill="#fff" stroke="#ea580c" stroke-width="8"/><path d="M505 65c-80-35-145-15-205 20v150c60-35 125-55 205-20z" fill="#fff" stroke="#ea580c" stroke-width="8"/><path d="M300 85v150" stroke="#fdba74" stroke-width="8"/><path d="M135 115h105M135 145h120M360 115h105M345 145h120" stroke="#fb923c" stroke-width="7" stroke-linecap="round"/><text x="300" y="285" text-anchor="middle" font-family="Arial" font-size="28" fill="#9a3412">ENGLISH</text></svg>
