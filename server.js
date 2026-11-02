@@ -108,6 +108,28 @@ app.get('/teachers/:id/lessons', async (req, res) => {
   }
 });
 
+// Challenge: purchased slots for one lesson.
+app.get('/enrolment/:lessonid', async (req, res) => {
+  try {
+    const lessonId = req.params.lessonid;
+    const orders = await db.collection('order').find({ lessonIDs: lessonId }).toArray();
+
+    let enrolment = 0;
+    for (const order of orders) {
+      if (Array.isArray(order.items)) {
+        const item = order.items.find(x => x.lessonId === lessonId);
+        if (item) enrolment += Number(item.quantity) || 0;
+      } else {
+        enrolment += 1;
+      }
+    }
+
+    res.json({ lessonId, enrolment });
+  } catch {
+    res.status(500).json({ error: 'Could not calculate enrolment' });
+  }
+});
+
 async function start() {');
 
     const results = await db.collection('lesson').find({
