@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
-<rect width="600" height="300" fill="#dbeafe"/>
-<circle cx="300" cy="120" r="58" fill="#2563eb"/>
-<text x="300" y="225" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#2563eb">Math</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"><rect width="600" height="300" fill="#eef4ff"/><rect x="55" y="40" width="490" height="220" rx="22" fill="#fff" stroke="#2563eb" stroke-width="8"/><text x="105" y="130" font-family="Arial" font-size="72" fill="#2563eb">π</text><text x="230" y="125" font-family="Arial" font-size="48" fill="#1e3a8a">2 + 3 = 5</text><path d="M120 195h360" stroke="#93c5fd" stroke-width="8"/><circle cx="180" cy="195" r="12" fill="#2563eb"/><circle cx="300" cy="195" r="12" fill="#2563eb"/><circle cx="420" cy="195" r="12" fill="#2563eb"/><text x="300" y="240" text-anchor="middle" font-family="Arial" font-size="28" fill="#1e3a8a">MATHEMATICS</text></svg>
