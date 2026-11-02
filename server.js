@@ -30,6 +30,14 @@ app.get('/', (req, res) => {
   res.json({ message: 'After-school API is running' });
 });
 
+app.get('/lessons', async (req, res) => {
+  try {
+    res.json(await db.collection('lesson').find({}).toArray());
+  } catch {
+    res.status(500).json({ error: 'Could not retrieve lessons' });
+  }
+});
+
 async function start() {
   await client.connect();
   db = client.db(process.env.DB_NAME || 'after_school');
