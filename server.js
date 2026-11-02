@@ -339,6 +339,75 @@ app.get('/teachers/:id/lessons', async (req, res) => {
   }
 });
 
+// Return enrolments stored in MongoDB for one customer phone number.
+app.get('/my-enrolments', async (req, res) => {
+  try {
+    const phone = String(req.query.phone || '').trim();
+
+    logStep(req, 'ROUTE', 'GET /my-enrolments?phone=');
+    logStep(req, 'CODE', "server.js -> app.get('/my-enrolments', ...)");
+    logStep(req, 'INFO', `Phone lookup: ${maskPhone(phone)}`);
+    logStep(req, 'INFO', 'Goal: rebuild the customer enrolment list from MongoDB Atlas.');
+
+    if (!/^\d+$/.test(phone)) {
+      logStep(req, 'WARNING', 'Phone lookup is missing or invalid.');
+      return res.status(400).json({ error: 'Enter a valid phone number' });
+    }
+
+    logStep(req, 'DATABASE', 'Step 1: query the order collection by phone.');
+    logStep(req, 'DATABASE', 'MongoDB operation: find({ phone })');
+
+    const orders = await db.collection('order')
+      .find({ phone })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    logStep(req, 'DATABASE', `Orders found: ${orders.length}`);
+
+    const enrolments = [];
+
+    for (const order of orders) {
+      const items = Array.isArray(order.items) ? order.items : [];
+
+      for (const item of items) {
+        const quantity = Number(item.quantity) || 0;
+
+        if (quantity <= 0) continue;
+
+        const lesson = await db.collection('lesson').findOne({
+          _id: new ObjectId(item.lessonId)
+        });
+
+        if (!lesson) continue;
+
+        enrolments.push({
+          orderId: order._id,
+          lessonId: lesson._id,
+          topic: lesson.topic,
+          location: lesson.location,
+          price: lesson.price,
+          image: lesson.image,
+          availableSpace: lesson.space,
+          quantity,
+          purchasedAt: order.createdAt || null
+        });
+      }
+    }
+
+    logStep(req, 'DATABASE', `Active enrolment entries returned: ${enrolments.length}`);
+    logStep(req, 'RESPONSE', 'Returning MongoDB-backed enrolments to Vue.');
+
+    res.json({
+      phone,
+      enrolments
+    });
+  } catch (error) {
+    logStep(req, 'ERROR', 'Could not load customer enrolments.');
+    console.error(`[${req.requestId}] Technical error:`, error.message);
+    res.status(500).json({ error: 'Could not load enrolments' });
+  }
+});
+
 // Extra enrolment action: remove one purchased slot and restore one lesson space.
 app.delete('/enrolments/:orderId/:lessonId', async (req, res) => {
   try {
@@ -504,6 +573,7 @@ async function start() {
     console.log('          GET  /teachers');
     console.log('          GET  /teachers/:id/lessons');
     console.log('          GET  /enrolment/:lessonid');
+    console.log('          GET  /my-enrolments?phone=');
     console.log('          DELETE /enrolments/:orderId/:lessonId');
     console.log('          GET  /images/:filename');
     console.log('============================================================\n');
