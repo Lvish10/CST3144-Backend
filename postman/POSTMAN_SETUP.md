@@ -28,11 +28,18 @@ Prepare these first:
 - **04 - GET Teacher Lessons** -> lessons associated with one teacher.
 - **05 - GET Enrolment** -> purchased slots for one lesson.
 
-## 6. Middleware requests
+## 6. MongoDB-backed My Enrolments
+Run **GET My Enrolments** with the same phone number used when creating an order.
+
+This proves the enrolment page is loaded from MongoDB Atlas rather than browser storage.
+
+The response contains active purchased lessons, order IDs, lesson details and quantities.
+
+## 7. Middleware requests
 - **09 - GET Valid Image** -> static middleware returns a real image.
 - **10 - GET Missing Image** -> static middleware returns HTTP 404 and JSON error.
 
-## 7. Optional de-enrol request
+## 8. Optional de-enrol request
 First run **06 - POST New Order**.
 
 The response contains:
@@ -49,10 +56,10 @@ Then run **11 - DELETE One Enrolment**.
 
 This removes one purchased slot and restores one lesson space.
 
-## 8. Important testing note
+## 9. Important testing note
 The PUT requests change real Atlas data. If you change Mathematics to space 4 or price 105 during testing, either change it back afterward or run `npm run seed` only when you intentionally want to reset the database.
 
-## 9. What to have open for the demonstration
+## 10. What to have open for the demonstration
 - GitHub Pages frontend
 - Render logs
 - MongoDB Atlas / Compass collection view
