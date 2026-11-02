@@ -9,6 +9,37 @@ const client = new MongoClient(process.env.MONGODB_URI);
 let db;
 let requestNumber = 0;
 
+// Small in-memory buffer for the public live log page.
+// It stores only sanitized teaching/debug messages, never secrets.
+const liveLogBuffer = [];
+const liveLogClients = new Set();
+const MAX_LIVE_LOGS = 250;
+
+function publishLiveLog(message) {
+  const entry = {
+    time: new Date().toISOString(),
+    message: String(message)
+  };
+
+  liveLogBuffer.push(entry);
+
+  if (liveLogBuffer.length > MAX_LIVE_LOGS) {
+    liveLogBuffer.shift();
+  }
+
+  const payload = `data: ${JSON.stringify(entry)}\n\n`;
+
+  for (const client of liveLogClients) {
+    client.write(payload);
+  }
+}
+
+function consoleAndLive(message) {
+  console.log(message);
+  publishLiveLog(message);
+}
+
+
 // Small helper so every request can be followed from start to finish.
 function nextRequestId() {
   requestNumber += 1;
@@ -17,9 +48,13 @@ function nextRequestId() {
 
 function logStep(req, label, message, details = null) {
   const id = req.requestId || 'STARTUP';
-  console.log(`[${id}] [${label}] ${message}`);
+  consoleAndLive(`[${id}] [${label}] ${message}`);
+
   if (details) {
-    console.log(`[${id}]            `, details);
+    const safeDetails = typeof details === 'string'
+      ? details
+      : JSON.stringify(details);
+    consoleAndLive(`[${id}]            ${safeDetails}`);
   }
 }
 
@@ -55,7 +90,7 @@ app.use((req, res, next) => {
   req.requestId = nextRequestId();
   req.startedAt = Date.now();
 
-  console.log('\n------------------------------------------------------------');
+  consoleAndLive('------------------------------------------------------------');
   logStep(req, 'REQUEST', 'Request started');
   logStep(req, 'INFO', `Method: ${req.method}`);
   logStep(req, 'INFO', `URL: ${req.originalUrl}`);
@@ -65,7 +100,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - req.startedAt;
     logStep(req, 'RESPONSE', `HTTP status: ${res.statusCode}`);
     logStep(req, 'SUCCESS', `Request completed in ${duration} ms`);
-    console.log('------------------------------------------------------------\n');
+    consoleAndLive('------------------------------------------------------------');
   });
 
   next();
@@ -90,10 +125,135 @@ app.use('/images', (req, res) => {
   res.status(404).json({ error: 'Image not found' });
 });
 
+app.get('/health', (req, res) => {
+  logStep(req, 'ROUTE', 'GET /health');
+  logStep(req, 'INFO', 'Health check confirms the AfterClass API is running.');
+  res.json({
+    status: 'ok',
+    service: 'AfterClass API',
+    database: db ? db.databaseName : 'connecting'
+  });
+});
+
+// Browser-readable live backend log stream.
+app.get('/log-stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  for (const entry of liveLogBuffer) {
+    res.write(`data: ${JSON.stringify(entry)}\n\n`);
+  }
+
+  liveLogClients.add(res);
+
+  req.on('close', () => {
+    liveLogClients.delete(res);
+  });
+});
+
+// Public teaching/debug dashboard. No secrets are displayed here.
 app.get('/', (req, res) => {
   logStep(req, 'ROUTE', 'GET /');
-  logStep(req, 'INFO', 'Simple health check for the AfterClass API.');
-  res.json({ message: 'After-school API is running' });
+  logStep(req, 'INFO', 'Opening the live backend activity dashboard.');
+
+  res.type('html').send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AfterClass Backend Activity</title>
+  <style>
+    :root{font-family:Arial,sans-serif;color:#e5eef8;background:#09111f}
+    *{box-sizing:border-box}body{margin:0;background:#09111f}
+    header{padding:22px 28px;background:#10243e;border-bottom:1px solid #294563}
+    h1{margin:0 0 6px;font-size:1.55rem}p{margin:0;color:#b8c7d9}
+    main{max-width:1200px;margin:auto;padding:22px}
+    .grid{display:grid;grid-template-columns:280px 1fr;gap:18px}
+    .panel{background:#101b2b;border:1px solid #24364d;border-radius:12px;padding:16px}
+    .panel h2{margin:0 0 12px;font-size:1rem}
+    .route{padding:7px 0;border-bottom:1px solid #203046;font-family:Consolas,monospace;font-size:.86rem}
+    .method{display:inline-block;width:58px;color:#7dd3fc;font-weight:700}
+    #logs{height:68vh;overflow:auto;background:#050a12;border-radius:9px;padding:14px;font-family:Consolas,monospace;font-size:.86rem;line-height:1.55;white-space:pre-wrap}
+    .line{padding:2px 0}.time{color:#64748b;margin-right:8px}.db{color:#86efac}.err{color:#fca5a5}.req{color:#93c5fd}.success{color:#67e8f9}
+    .toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+    .status{display:flex;gap:7px;align-items:center;color:#a7f3d0}.dot{width:9px;height:9px;background:#22c55e;border-radius:50%}
+    button{border:0;border-radius:7px;padding:7px 10px;background:#24364d;color:#fff;cursor:pointer}
+    small{color:#94a3b8}
+    @media(max-width:800px){.grid{grid-template-columns:1fr}#logs{height:55vh}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>AfterClass — Live Backend Activity</h1>
+  <p>Express → MongoDB Atlas activity, explained live. Sensitive values are not displayed.</p>
+</header>
+<main>
+  <div class="grid">
+    <aside class="panel">
+      <h2>Available API routes</h2>
+      <div class="route"><span class="method">GET</span>/health</div>
+      <div class="route"><span class="method">GET</span>/lessons</div>
+      <div class="route"><span class="method">POST</span>/orders</div>
+      <div class="route"><span class="method">PUT</span>/lessons/:id</div>
+      <div class="route"><span class="method">GET</span>/search?q=</div>
+      <div class="route"><span class="method">GET</span>/teachers</div>
+      <div class="route"><span class="method">GET</span>/teachers/:id/lessons</div>
+      <div class="route"><span class="method">GET</span>/enrolment/:lessonid</div>
+      <div class="route"><span class="method">GET</span>/my-enrolments?phone=</div>
+      <div class="route"><span class="method">DELETE</span>/enrolments/:orderId/:lessonId</div>
+      <div class="route"><span class="method">GET</span>/images/:filename</div>
+      <br>
+      <small>Open the GitHub Pages frontend in another tab. Every backend request appears here as it happens.</small>
+    </aside>
+    <section class="panel">
+      <div class="toolbar">
+        <div class="status"><span class="dot"></span><strong>Live</strong></div>
+        <button id="clear">Clear screen</button>
+      </div>
+      <div id="logs"></div>
+    </section>
+  </div>
+</main>
+<script>
+  const logs = document.getElementById('logs');
+  const source = new EventSource('/log-stream');
+
+  function add(entry) {
+    const row = document.createElement('div');
+    row.className = 'line';
+
+    if (entry.message.includes('[DATABASE]')) row.classList.add('db');
+    if (entry.message.includes('[ERROR]')) row.classList.add('err');
+    if (entry.message.includes('[REQUEST]') || entry.message.includes('[ROUTE]')) row.classList.add('req');
+    if (entry.message.includes('[SUCCESS]') || entry.message.includes('[RESPONSE]')) row.classList.add('success');
+
+    const time = document.createElement('span');
+    time.className = 'time';
+    time.textContent = new Date(entry.time).toLocaleTimeString();
+
+    row.appendChild(time);
+    row.appendChild(document.createTextNode(entry.message));
+    logs.appendChild(row);
+    logs.scrollTop = logs.scrollHeight;
+  }
+
+  source.onmessage = event => add(JSON.parse(event.data));
+
+  source.onerror = () => {
+    const row = document.createElement('div');
+    row.className = 'line err';
+    row.textContent = 'Live stream disconnected. The browser will retry automatically.';
+    logs.appendChild(row);
+  };
+
+  document.getElementById('clear').onclick = () => {
+    logs.innerHTML = '';
+  };
+</script>
+</body>
+</html>`);
 });
 
 // Return every lesson from MongoDB Atlas.
@@ -551,31 +711,32 @@ app.get('/enrolment/:lessonid', async (req, res) => {
 });
 
 async function start() {
-  console.log('\n============================================================');
-  console.log('AFTERCLASS BACKEND STARTING');
-  console.log('============================================================');
-  console.log('[STARTUP] Connecting to MongoDB Atlas...');
-  console.log('[STARTUP] Database: after_school');
+  consoleAndLive('============================================================');
+  consoleAndLive('AFTERCLASS BACKEND STARTING');
+  consoleAndLive('============================================================');
+  consoleAndLive('[STARTUP] Connecting to MongoDB Atlas...');
+  consoleAndLive('[STARTUP] Database: after_school');
 
   await client.connect();
   db = client.db(process.env.DB_NAME || 'after_school');
 
-  console.log(`[STARTUP] MongoDB connected successfully: ${db.databaseName}`);
+  consoleAndLive(`[STARTUP] MongoDB connected successfully: ${db.databaseName}`);
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[STARTUP] Express server listening on port ${PORT}`);
-    console.log('[STARTUP] Routes ready:');
-    console.log('          GET  /');
-    console.log('          GET  /lessons');
-    console.log('          POST /orders');
-    console.log('          PUT  /lessons/:id');
-    console.log('          GET  /search?q=');
-    console.log('          GET  /teachers');
-    console.log('          GET  /teachers/:id/lessons');
-    console.log('          GET  /enrolment/:lessonid');
-    console.log('          GET  /my-enrolments?phone=');
-    console.log('          DELETE /enrolments/:orderId/:lessonId');
-    console.log('          GET  /images/:filename');
+    consoleAndLive(`[STARTUP] Express server listening on port ${PORT}`);
+    consoleAndLive('[STARTUP] Routes ready:');
+    consoleAndLive('          GET  /');
+    consoleAndLive('          GET  /health');
+    consoleAndLive('          GET  /lessons');
+    consoleAndLive('          POST /orders');
+    consoleAndLive('          PUT  /lessons/:id');
+    consoleAndLive('          GET  /search?q=');
+    consoleAndLive('          GET  /teachers');
+    consoleAndLive('          GET  /teachers/:id/lessons');
+    consoleAndLive('          GET  /enrolment/:lessonid');
+    consoleAndLive('          GET  /my-enrolments?phone=');
+    consoleAndLive('          DELETE /enrolments/:orderId/:lessonId');
+    consoleAndLive('          GET  /images/:filename');
     console.log('============================================================\n');
   });
 }
