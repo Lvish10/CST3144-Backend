@@ -41,7 +41,7 @@ app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', process.env.FRONTEND_ORIGIN || '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
@@ -339,6 +339,103 @@ app.get('/teachers/:id/lessons', async (req, res) => {
   }
 });
 
+// Extra enrolment action: remove one purchased slot and restore one lesson space.
+app.delete('/enrolments/:orderId/:lessonId', async (req, res) => {
+  try {
+    const { orderId, lessonId } = req.params;
+
+    logStep(req, 'ROUTE', 'DELETE /enrolments/:orderId/:lessonId');
+    logStep(req, 'CODE', "server.js -> app.delete('/enrolments/:orderId/:lessonId', ...)");
+    logStep(req, 'INFO', 'Goal: remove one purchased slot from an existing order.');
+    logStep(req, 'INFO', `Order ID: ${orderId}`);
+    logStep(req, 'INFO', `Lesson ID: ${lessonId}`);
+
+    const order = await db.collection('order').findOne({
+      _id: new ObjectId(orderId)
+    });
+
+    if (!order) {
+      logStep(req, 'WARNING', 'Order was not found.');
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    const items = Array.isArray(order.items) ? order.items : [];
+    const itemIndex = items.findIndex(item => item.lessonId === lessonId);
+
+    if (itemIndex === -1) {
+      logStep(req, 'WARNING', 'The selected lesson was not found in this order.');
+      return res.status(404).json({ error: 'Lesson not found in order' });
+    }
+
+    const currentQuantity = Number(items[itemIndex].quantity) || 0;
+
+    if (currentQuantity <= 0) {
+      return res.status(400).json({ error: 'No purchased space to remove' });
+    }
+
+    const newItems = items.map(item => ({ ...item }));
+
+    if (currentQuantity === 1) {
+      newItems.splice(itemIndex, 1);
+    } else {
+      newItems[itemIndex].quantity = currentQuantity - 1;
+    }
+
+    const newLessonIDs = currentQuantity === 1
+      ? order.lessonIDs.filter(id => id !== lessonId)
+      : order.lessonIDs;
+
+    const newNumberOfSpaces = Math.max(
+      0,
+      Number(order.numberOfSpaces || 0) - 1
+    );
+
+    logStep(req, 'DATABASE', 'Updating order collection after de-enrolment.');
+
+    await db.collection('order').updateOne(
+      { _id: new ObjectId(orderId) },
+      {
+        $set: {
+          items: newItems,
+          lessonIDs: newLessonIDs,
+          numberOfSpaces: newNumberOfSpaces
+        }
+      }
+    );
+
+    const lesson = await db.collection('lesson').findOne({
+      _id: new ObjectId(lessonId)
+    });
+
+    if (!lesson) {
+      return res.status(404).json({ error: 'Lesson not found' });
+    }
+
+    const restoredSpace = Math.min(5, Number(lesson.space || 0) + 1);
+
+    logStep(req, 'DATABASE', 'Restoring one available lesson space.');
+    logStep(req, 'DATABASE', `Lesson space: ${lesson.space} -> ${restoredSpace}`);
+
+    const updatedLesson = await db.collection('lesson').findOneAndUpdate(
+      { _id: new ObjectId(lessonId) },
+      { $set: { space: restoredSpace } },
+      { returnDocument: 'after' }
+    );
+
+    logStep(req, 'RESPONSE', 'One enrolment removed and one lesson space restored.');
+
+    res.json({
+      message: 'De-enrolled successfully',
+      lesson: updatedLesson,
+      remainingPurchasedSpacesInOrder: currentQuantity - 1
+    });
+  } catch (error) {
+    logStep(req, 'ERROR', 'Could not de-enrol from the lesson.');
+    console.error(`[${req.requestId}] Technical error:`, error.message);
+    res.status(400).json({ error: 'Could not de-enrol from lesson' });
+  }
+});
+
 // Challenge 3: calculate the number of purchased spaces for one lesson.
 app.get('/enrolment/:lessonid', async (req, res) => {
   try {
@@ -407,6 +504,7 @@ async function start() {
     console.log('          GET  /teachers');
     console.log('          GET  /teachers/:id/lessons');
     console.log('          GET  /enrolment/:lessonid');
+    console.log('          DELETE /enrolments/:orderId/:lessonId');
     console.log('          GET  /images/:filename');
     console.log('============================================================\n');
   });
