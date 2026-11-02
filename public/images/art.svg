@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
-<rect width="600" height="300" fill="#fce7f3"/>
-<circle cx="300" cy="120" r="58" fill="#db2777"/>
-<text x="300" y="225" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#db2777">Art</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"><rect width="600" height="300" fill="#fdf2f8"/><path d="M305 55c-115 0-190 70-190 145 0 50 45 75 90 55 20-9 20-35 45-40 27-6 35 35 75 35 95 0 160-72 160-135 0-65-75-110-180-110z" fill="#fff" stroke="#db2777" stroke-width="8"/><circle cx="190" cy="150" r="22" fill="#f59e0b"/><circle cx="250" cy="105" r="22" fill="#3b82f6"/><circle cx="330" cy="100" r="22" fill="#10b981"/><circle cx="395" cy="145" r="22" fill="#ef4444"/><path d="M420 230l85-135" stroke="#7c2d12" stroke-width="12" stroke-linecap="round"/><path d="M500 95l18-28" stroke="#fbbf24" stroke-width="20" stroke-linecap="round"/><text x="300" y="285" text-anchor="middle" font-family="Arial" font-size="28" fill="#9d174d">ART</text></svg>
