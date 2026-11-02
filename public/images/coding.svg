@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
-<rect width="600" height="300" fill="#ede9fe"/>
-<circle cx="300" cy="120" r="58" fill="#7c3aed"/>
-<text x="300" y="225" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#7c3aed">Coding</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"><rect width="600" height="300" fill="#f5f3ff"/><rect x="70" y="45" width="460" height="200" rx="18" fill="#111827"/><path d="M220 105l-70 45 70 45M380 105l70 45-70 45M335 85l-70 130" fill="none" stroke="#a78bfa" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><text x="300" y="280" text-anchor="middle" font-family="Arial" font-size="28" fill="#6d28d9">CODING</text></svg>
