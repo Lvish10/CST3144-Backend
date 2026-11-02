@@ -1,69 +1,133 @@
-# Postman Setup - CST3144 AfterClass
+# Postman Setup — CST3144 AfterClass
 
-## 1. Install Postman
-Download the Postman desktop app from the official Postman website and sign in or create a free account.
+The Postman files in this folder are already prepared for both local and hosted testing.
 
-## 2. Import the files
+## Files
+
+- `CST3144_AfterClass.postman_collection.json`
+- `CST3144_AfterClass_Local.postman_environment.json`
+- `CST3144_AfterClass_Render.postman_environment.json`
+
+## Import
+
 In Postman:
+
 1. Click **Import**.
-2. Import `CST3144_AfterClass.postman_collection.json`.
-3. Import `CST3144_AfterClass_Local.postman_environment.json`.
-4. Import `CST3144_AfterClass_Render.postman_environment.json`.
+2. Import the collection JSON.
+3. Import both environment JSON files.
+4. Select **CST3144 AfterClass - Render** for the hosted demo.
+5. Select **CST3144 AfterClass - Local** only while `npm start` is running in VS Code.
 
-## 3. Choose an environment
-Use **CST3144 AfterClass - Local** when your VS Code backend is running with `npm start`.
+## Collection layout
 
-Use **CST3144 AfterClass - Render** when demonstrating the hosted backend.
+The collection is grouped into:
 
-## 4. Core requests for the coursework demo
-Prepare these first:
-- **01 - GET All Lessons** -> proves `GET /lessons`.
-- **06 - POST New Order** -> proves the order collection can receive an order.
-- **07 - PUT Lesson Space** -> proves a lesson field can be updated to a specific value.
-- **08 - PUT Lesson Price** -> additionally proves PUT is not limited to increment/decrement.
+1. **Core REST Requirements**
+   - GET All Lessons
+   - POST New Order
+   - PUT Lesson Space
+   - PUT Lesson Price
 
-## 5. Challenge requests
-- **02 - Search Lessons** -> backend search.
-- **03 - GET Teachers** -> teacher collection.
-- **04 - GET Teacher Lessons** -> lessons associated with one teacher.
-- **05 - GET Enrolment** -> purchased slots for one lesson.
+2. **Challenge Tasks**
+   - Search Lessons
+   - GET Teachers
+   - GET Teacher Lessons
+   - GET Enrolment
 
-## 6. MongoDB-backed My Enrolments
-Run **GET My Enrolments** with the same phone number used when creating an order.
+3. **Middleware and Images**
+   - GET Valid Image
+   - GET Missing Image
 
-This proves the enrolment page is loaded from MongoDB Atlas rather than browser storage.
+4. **Atlas Enrolment Features**
+   - GET My Enrolments
+   - DELETE One Enrolment
 
-The response contains active purchased lessons, order IDs, lesson details and quantities.
+5. **Live Logging**
+   - POST Client Event
 
-## 7. Middleware requests
-- **09 - GET Valid Image** -> static middleware returns a real image.
-- **10 - GET Missing Image** -> static middleware returns HTTP 404 and JSON error.
+## Important automation
 
-## 8. Optional de-enrol request
-First run **06 - POST New Order**.
+**POST New Order automatically saves the returned order ID into the active Postman environment.**
 
-The response contains:
-```json
-{
-  "message": "Order saved",
-  "orderId": "..."
-}
-```
+That means you can:
 
-Copy that `orderId` into the active Postman environment variable called `orderId`.
+1. Run **POST New Order**.
+2. Postman stores `orderId`.
+3. Run **DELETE One Enrolment** without manually copying the ID.
 
-Then run **11 - DELETE One Enrolment**.
+The collection also contains simple Postman tests for response status and expected data.
 
-This removes one purchased slot and restores one lesson space.
+## Core coursework demo sequence
 
-## 9. Important testing note
-The PUT requests change real Atlas data. If you change Mathematics to space 4 or price 105 during testing, either change it back afterward or run `npm run seed` only when you intentionally want to reset the database.
+Use the Render environment and run:
 
-## 10. What to have open for the demonstration
-- GitHub Pages frontend
-- Render logs
-- MongoDB Atlas / Compass collection view
-- VS Code frontend and backend code
-- Postman with this collection and the **Render** environment selected
+1. **GET All Lessons**
+2. **POST New Order**
+3. **PUT Lesson Space**
+4. **PUT Lesson Price**
 
-The logger in Render should print the route, MongoDB collection/operation, response status and duration as you send each Postman request.
+These prove the required GET, POST and flexible PUT REST operations.
+
+## Challenge demo sequence
+
+Run:
+
+1. **Search Lessons**
+2. **GET Teachers**
+3. **GET Teacher Lessons**
+4. **GET Enrolment**
+
+## Middleware demo
+
+Run:
+
+1. **GET Valid Image** → should return HTTP 200.
+2. **GET Missing Image** → should return HTTP 404.
+
+## Atlas-backed enrolments
+
+The collection uses phone number `59001234` in the prepared example requests.
+
+**POST New Order** creates an order with that phone number.
+
+Then run **GET My Enrolments** to read that order back from MongoDB Atlas.
+
+## Live backend logging
+
+Open:
+
+`https://m01016510-after-school.onrender.com`
+
+Leave it open while sending Postman requests.
+
+The page shows live sanitized activity, including:
+
+- incoming request
+- HTTP method and URL
+- Express route
+- backend code section
+- MongoDB collection
+- MongoDB operation
+- result summary
+- response status
+- duration
+- client-event logs
+
+You can also run **POST Client Event** to demonstrate frontend/client event logging explicitly.
+
+## Data warning
+
+POST, PUT and DELETE requests modify the real MongoDB Atlas database.
+
+The database was last reset to:
+
+- 10 lessons
+- 5 spaces each
+- 4 teachers
+- 0 orders
+
+Do not run `npm run seed` unless you intentionally want to erase orders and reset spaces.
+
+## Submission export
+
+For the final coursework package, export the Postman collection from Postman as Collection v2.1 JSON and include it with the required submission files.
