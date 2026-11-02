@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CST3144 AfterClass API",
-    "description": "Postman requests for the CST3144 AfterClass backend. Covers core REST routes, challenge routes, static images and the optional de-enrol flow.",
+    "description": "Complete CST3144 AfterClass API collection covering the required GET/POST/PUT routes, challenge tasks, middleware/static images, Atlas-backed enrolments and live client-event logging.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -24,235 +24,440 @@
   ],
   "item": [
     {
-      "name": "01 - GET All Lessons",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/lessons",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "lessons"
-          ]
-        }
-      }
-    },
-    {
-      "name": "02 - Search Lessons",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/search?q=math",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "search"
-          ],
-          "query": [
+      "name": "01 - Core REST Requirements",
+      "item": [
+        {
+          "name": "01 - GET All Lessons",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/lessons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lessons"
+              ]
+            }
+          },
+          "event": [
             {
-              "key": "q",
-              "value": "math"
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns an array of lessons', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('At least 10 lessons exist', () => pm.expect(pm.response.json().length).to.be.at.least(10));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "07 - POST New Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Student\",\n  \"phone\": \"59001234\",\n  \"lessonIDs\": [\n    \"{{lessonId}}\"\n  ],\n  \"numberOfSpaces\": 1,\n  \"items\": [\n    {\n      \"lessonId\": \"{{lessonId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Order created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (body.orderId) pm.environment.set('orderId', body.orderId);",
+                  "pm.test('Response contains orderId', () => pm.expect(body.orderId).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "08 - PUT Lesson Space",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"space\": 4\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lessons/{{lessonId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lessons",
+                "{{lessonId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lesson updated', () => pm.response.to.have.status(200));",
+                  "pm.test('Space is 4', () => pm.expect(pm.response.json().space).to.eql(4));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "09 - PUT Lesson Price",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 105\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lessons/{{lessonId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lessons",
+                "{{lessonId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Lesson updated', () => pm.response.to.have.status(200));",
+                  "pm.test('Price is 105', () => pm.expect(pm.response.json().price).to.eql(105));"
+                ],
+                "type": "text/javascript"
+              }
             }
           ]
         }
-      }
+      ]
     },
     {
-      "name": "03 - GET Teachers",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/teachers",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "teachers"
-          ]
-        }
-      }
-    },
-    {
-      "name": "04 - GET Teacher Lessons",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/teachers/{{teacherId}}/lessons",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "teachers",
-            "{{teacherId}}",
-            "lessons"
-          ]
-        }
-      }
-    },
-    {
-      "name": "05 - GET Enrolment",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/enrolment/{{lessonId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "enrolment",
-            "{{lessonId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "06 - GET My Enrolments",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/my-enrolments?phone=59001234",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "my-enrolments"
-          ],
-          "query": [
+      "name": "02 - Challenge Tasks",
+      "item": [
+        {
+          "name": "02 - Search Lessons",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/search?q=math",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "math"
+                }
+              ]
+            }
+          },
+          "event": [
             {
-              "key": "phone",
-              "value": "59001234"
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Search returns 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Search returns an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - GET Teachers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/teachers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teachers route works', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns teachers', () => pm.expect(pm.response.json()).to.be.an('array').that.is.not.empty);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - GET Teacher Lessons",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/teachers/{{teacherId}}/lessons",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teachers",
+                "{{teacherId}}",
+                "lessons"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teacher lessons route works', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns linked lessons', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - GET Enrolment",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/enrolment/{{lessonId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enrolment",
+                "{{lessonId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Enrolment route works', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has enrolment number', () => pm.expect(pm.response.json().enrolment).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
             }
           ]
         }
-      }
+      ]
     },
     {
-      "name": "07 - POST New Order",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"name\": \"Postman Student\",\n  \"phone\": \"59001234\",\n  \"lessonIDs\": [\n    \"{{lessonId}}\"\n  ],\n  \"numberOfSpaces\": 1,\n  \"items\": [\n    {\n      \"lessonId\": \"{{lessonId}}\",\n      \"quantity\": 1\n    }\n  ]\n}"
+      "name": "03 - Middleware and Images",
+      "item": [
+        {
+          "name": "10 - GET Valid Image",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/images/math.svg",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "math.svg"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Valid image returns 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
-        "url": {
-          "raw": "{{baseUrl}}/orders",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "orders"
+        {
+          "name": "11 - GET Missing Image",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/images/missing.svg",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "images",
+                "missing.svg"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing image returns 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ]
         }
-      }
+      ]
     },
     {
-      "name": "08 - PUT Lesson Space",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"space\": 4\n}"
+      "name": "04 - Atlas Enrolment Features",
+      "item": [
+        {
+          "name": "06 - GET My Enrolments",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/my-enrolments?phone=59001234",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "my-enrolments"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "59001234"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('My Enrolments route works', () => pm.response.to.have.status(200));",
+                  "pm.test('Response contains enrolments array', () => pm.expect(pm.response.json().enrolments).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
-        "url": {
-          "raw": "{{baseUrl}}/lessons/{{lessonId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "lessons",
-            "{{lessonId}}"
+        {
+          "name": "12 - DELETE One Enrolment",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/enrolments/{{orderId}}/{{lessonId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "enrolments",
+                "{{orderId}}",
+                "{{lessonId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('De-enrol succeeds', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ]
         }
-      }
+      ]
     },
     {
-      "name": "09 - PUT Lesson Price",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"price\": 105\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/lessons/{{lessonId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "lessons",
-            "{{lessonId}}"
+      "name": "05 - Live Logging",
+      "item": [
+        {
+          "name": "POST Client Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"click\",\n  \"action\": \"Postman test interaction\",\n  \"target\": \"Postman\",\n  \"details\": {\n    \"source\": \"Postman collection\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/client-events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "client-events"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Client event accepted', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
           ]
         }
-      }
-    },
-    {
-      "name": "10 - GET Valid Image",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/images/math.svg",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "images",
-            "math.svg"
-          ]
-        }
-      }
-    },
-    {
-      "name": "11 - GET Missing Image",
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/images/missing.svg",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "images",
-            "missing.svg"
-          ]
-        }
-      }
-    },
-    {
-      "name": "12 - DELETE One Enrolment",
-      "request": {
-        "method": "DELETE",
-        "url": {
-          "raw": "{{baseUrl}}/enrolments/{{orderId}}/{{lessonId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "enrolments",
-            "{{orderId}}",
-            "{{lessonId}}"
-          ]
-        }
-      }
+      ]
     }
   ]
 }
