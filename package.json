@@ -4,7 +4,7 @@
   "description": "Simple Node.js, Express and MongoDB backend for the after-school app",
   "main": "server.js",
   "scripts": {
-    "start": "node seed.js && node server.js",
+    "start": "node server.js",
     "seed": "node seed.js",
     "export": "node export.js"
   },
