@@ -1,5 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300">
-<rect width="600" height="300" fill="#dcfce7"/>
-<circle cx="300" cy="120" r="58" fill="#16a34a"/>
-<text x="300" y="225" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" fill="#16a34a">Science</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300"><rect width="600" height="300" fill="#ecfdf5"/><path d="M235 45h130v25l-20 25v62l72 86c12 14 2 37-17 37H200c-19 0-29-23-17-37l72-86V95l-20-25z" fill="#fff" stroke="#059669" stroke-width="8"/><path d="M220 220h160l-35-42h-90z" fill="#6ee7b7"/><circle cx="270" cy="185" r="13" fill="#10b981"/><circle cx="330" cy="205" r="10" fill="#047857"/><text x="300" y="285" text-anchor="middle" font-family="Arial" font-size="28" fill="#065f46">SCIENCE</text></svg>
