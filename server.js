@@ -195,7 +195,7 @@ app.get('/', (req, res) => {
       <h2>Available API routes</h2>
       <div class="route"><span class="method">GET</span>/health</div>
       <div class="route"><span class="method">GET</span>/lessons</div>
-      <div class="route"><span class="method">POST</span>/orders</div>
+      <div class="route"><span class="method">POST</span>/orders</div>\n      <div class="route"><span class="method">POST</span>/client-events</div>
       <div class="route"><span class="method">PUT</span>/lessons/:id</div>
       <div class="route"><span class="method">GET</span>/search?q=</div>
       <div class="route"><span class="method">GET</span>/teachers</div>
@@ -254,6 +254,39 @@ app.get('/', (req, res) => {
 </script>
 </body>
 </html>`);
+});
+
+// Receive safe frontend interaction events so the live log can show the full user flow.
+app.post('/client-events', (req, res) => {
+  const { event, action, target, details = {} } = req.body || {};
+
+  logStep(req, 'CLIENT', 'Frontend interaction received.');
+  logStep(req, 'CLIENT', `Event: ${event || 'unknown'}`);
+  logStep(req, 'CLIENT', `Action: ${action || 'unknown'}`);
+  logStep(req, 'CLIENT', `Target: ${target || 'unknown'}`);
+
+  // Keep only simple non-sensitive details.
+  const safeDetails = {};
+
+  for (const [key, value] of Object.entries(details || {})) {
+    if (['phone', 'name', 'password', 'token', 'mongodb_uri'].includes(String(key).toLowerCase())) {
+      continue;
+    }
+
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
+      safeDetails[key] = value;
+    }
+  }
+
+  if (Object.keys(safeDetails).length) {
+    logStep(req, 'CLIENT', 'Details', safeDetails);
+  }
+
+  res.status(204).end();
 });
 
 // Return every lesson from MongoDB Atlas.
@@ -729,6 +762,7 @@ async function start() {
     consoleAndLive('          GET  /health');
     consoleAndLive('          GET  /lessons');
     consoleAndLive('          POST /orders');
+    consoleAndLive('          POST /client-events');
     consoleAndLive('          PUT  /lessons/:id');
     consoleAndLive('          GET  /search?q=');
     consoleAndLive('          GET  /teachers');
