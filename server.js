@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,6 +55,28 @@ app.post('/orders', async (req, res) => {
     res.status(201).json({ message: 'Order saved', orderId: result.insertedId });
   } catch {
     res.status(500).json({ error: 'Could not save order' });
+  }
+});
+
+app.put('/lessons/:id', async (req, res) => {
+  try {
+    const allowed = ['topic', 'location', 'price', 'space', 'image'];
+    const update = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) update[key] = req.body[key];
+    }
+    if (!Object.keys(update).length) {
+      return res.status(400).json({ error: 'No valid lesson attributes supplied' });
+    }
+    const result = await db.collection('lesson').findOneAndUpdate(
+      { _id: new ObjectId(req.params.id) },
+      { $set: update },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ error: 'Lesson not found' });
+    res.json(result);
+  } catch {
+    res.status(400).json({ error: 'Invalid lesson ID or update' });
   }
 });
 
